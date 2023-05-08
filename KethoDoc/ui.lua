@@ -35,26 +35,27 @@ function KethoWindow:Create(actions)
         self:AddButton(action["name"], action["callback"])
     end
 
-    --local scrollFrame = CreateFrame("ScrollFrame", "KethoWindowScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    ----sf:SetPoint("LEFT", 16, 0)
-    ----sf:SetPoint("RIGHT", -32, 0)
-    ----sf:SetPoint("TOP", 0, -16)
-    ----sf:SetPoint("BOTTOM", frame, "BOTTOM", 0, 50)
-    --scrollFrame:SetScrollChild(editBox)
-    --
-    --local editBox = CreateFrame("EditBox", "KethoWindowEditBox", frame)
-    ----eb:SetSize(sf:GetSize())
-    --eb:SetMultiLine(true)
-    --eb:SetAutoFocus(false) -- TODO !!!
-    --eb:SetFontObject("ChatFontNormal")
-    ----eb:SetScript("OnEscapePressed", eb.ClearFocus)
+    -- TODO draw background under frame, add button to select all text
 
-    --self.scrollFrame = scrollFrame
-    --self.editBox = editBox
+    local scrollFrame = CreateFrame("ScrollFrame", "KethoWindowScrollFrame", frame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetWidth(frame:GetWidth() * 2)
+    scrollFrame:SetHeight(frame:GetHeight());
+    scrollFrame:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, 0)
+    self.scrollFrame = scrollFrame
+
+    local editBox = CreateFrame("EditBox", "KethoWindowEditBox", scrollFrame)
+    editBox:SetWidth(scrollFrame:GetWidth())
+    editBox:SetHeight(scrollFrame:GetHeight())
+    editBox:SetMultiLine(true)
+    editBox:SetAutoFocus(false)
+    editBox:SetFontObject("ChatFontNormal")
+    editBox:SetScript("OnEscapePressed", function () editBox:ClearFocus() end)
+    scrollFrame:SetScrollChild(editBox)
+    self.editBox = editBox
 end
 
---- @param id string
 --- @param name string
+--- @param callback fun():string
 function KethoWindow:AddButton(name, callback)
     local button = CreateFrame(
         "Button",
@@ -73,10 +74,9 @@ function KethoWindow:AddButton(name, callback)
         local oldText = button:GetText()
         button:SetText("Loading...")
         button:Disable()
-        local data = callback()
+        self.editBox:SetText(callback())
         button:Enable()
         button:SetText(oldText)
-        -- TODO output data to editbox
     end)
 
     local max_button_width = 0
