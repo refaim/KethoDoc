@@ -1,50 +1,9 @@
+local _G = getfenv(0)
 
 KethoDoc = {}
-local eb = KethoEditBox
 
-local toc = select(4, GetBuildInfo())
-
-if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-	KethoDoc.isMainline = true
-	KethoDoc.branch = "mainline"
-elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
-		KethoDoc.branch = "wrath"
-elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
-	KethoDoc.branch = "vanilla"
-end
-
-local ptr_realms = {
-	[909] = "Anasterian",
-	[912] = "Broxigar",
-	[969] = "Nobundo",
-	[3296] = "Benedictus",
-	[3299] = "Lycanthoth",
-}
-local realmId = GetRealmID()
-
-if IsTestBuild() or ptr_realms[realmId] then
-	KethoDoc.branch = KethoDoc.branch.."_ptr"
-end
-
-if IsPublicBuild() then
-	if IsAddOnLoaded("Blizzard_Deprecated") then
-		print("|cff71d5ffKethoDoc:|r Please click |cFFFFFF00|Hgarrmission:KethoDoc|h[Reload]|h|r to disable the Blizzard_Deprecated addon and avoid dumping deprecated API."
-			.." You will have to re-enable it manually.")
-		hooksecurefunc("SetItemRef", function(link)
-			local linkType, addon = strsplit(":", link)
-			if linkType == "garrmission" and addon == "KethoDoc" then
-				DisableAddOn("Blizzard_Deprecated")
-				-- use a custom cvar instead of savedvariables
-				C_CVar.RegisterCVar("KethoDoc")
-				C_CVar.SetCVar("KethoDoc", 1)
-				C_UI.Reload()
-			end
-		end)
-	elseif C_CVar.GetCVarBool("KethoDoc") then
-		print("|cff71d5ffKethoDoc:|r Disabled Blizzard_Deprecated.")
-		C_CVar.SetCVar("KethoDoc", 0)
-	end
-end
+KethoDoc.isMainline = false -- TODO remove this var
+KethoDoc.branch = "vanilla"
 
 function KethoDoc:GetAPI()
 	local api_func, framexml_func = self:GetGlobalAPI()
@@ -53,14 +12,14 @@ function KethoDoc:GetAPI()
 end
 
 function KethoDoc:DumpGlobalAPI()
-	local api = self:GetAPI()
 	eb:Show()
 	eb:InsertLine("local GlobalAPI = {")
-	for _, tbl in pairs(self:SortTable(api, "key")) do
+	for _, tbl in pairs(self:SortTable(self:GetAPI(), "key")) do
 		eb:InsertLine(format('\t"%s",', tbl.key))
 	end
 	eb:InsertLine("}\n")
-	self:DumpLuaAPI()
+	--TODO
+	--self:DumpLuaAPI()
 	eb:InsertLine("}\n\nreturn {GlobalAPI, LuaAPI}")
 end
 
@@ -136,7 +95,7 @@ function KethoDoc:DumpEvents()
 		return (a.Namespace or a.Name) < (b.Namespace or b.Name)
 	end)
 	for _, system in pairs(APIDocumentation.systems) do
-		if #system.Events > 0 then -- skip systems with no events
+		if getn(system.Events) > 0 then -- skip systems with no events
 			eb:InsertLine("\t"..(system.Namespace or system.Name).." = {")
 			for _, event in pairs(system.Events) do
 				eb:InsertLine(format('\t\t"%s",', event.LiteralName))
@@ -156,7 +115,7 @@ function KethoDoc:DumpCVars()
 	for _, v in pairs(C_Console.GetAllCommands()) do
 		if v.commandType == Enum.ConsoleCommandType.Cvar then
 			-- these just keep switching between false/nil
-			if not v.command:find("^CACHE") and v.command ~= "KethoDoc" then
+			if not string.find(v.command, "^CACHE") and v.command ~= "KethoDoc" then
 				local _, defaultValue, server, character = GetCVarInfo(v.command)
 				-- every time they change the category they seem to lose the help text
 				local cvarCache = self.cvar_cache.var[v.command]
@@ -167,7 +126,7 @@ function KethoDoc:DumpCVars()
 					end
 				end
 				local helpString = ""
-				if v.help and #v.help > 0 then
+				if v.help and getn(v.help) > 0 then
 					helpString = v.help
 				elseif cvarCache and cvarCache[5] then
 					helpString = cvarCache[5]
@@ -178,7 +137,7 @@ function KethoDoc:DumpCVars()
 			end
 		elseif v.commandType == Enum.ConsoleCommandType.Command then
 			local tbl = self.cvar_test[v.command] and test_commandTbl or commandTbl
-			local helpString = v.help and #v.help > 0 and v.help:gsub('"', '\\"') or ""
+			local helpString = v.help and getn(v.help > 0) and v.help:gsub('"', '\\"') or ""
 			tinsert(tbl, commandFs:format(v.command, v.category, helpString))
 		end
 	end
@@ -201,7 +160,7 @@ function KethoDoc:DumpCVars()
 	end
 	eb:InsertLine("\t},\n}\n")
 
-	if #test_cvarTbl > 0 then
+	if getn(test_cvarTbl) > 0 then
 		eb:InsertLine("local PTR = {")
 		eb:InsertLine("\tvar = {")
 		for _, cvar in pairs(test_cvarTbl) do
@@ -260,7 +219,7 @@ function KethoDoc:DumpLuaEnums(showGameErr)
 	eb:InsertLine("Enum = {")
 	local enums = {}
 	for name in pairs(Enum) do
-		if not name:find("Meta$") then
+		if not string.find(name, "Meta$") then
 			tinsert(enums, name)
 		end
 	end
@@ -297,12 +256,12 @@ function KethoDoc:DumpLuaEnums(showGameErr)
 	local EnumUngrouped = {}
 	-- LE_* globals
 	for enumType, enumValue in pairs(_G) do
-		if type(enumType) == "string" and enumType:find("^LE_") and (showGameErr or not enumType:find("GAME_ERR")) then
+		if type(enumType) == "string" and string.find(enumType, "^LE_") and (showGameErr or not string.find(enumType, "GAME_ERR")) then
 			-- group enums together
 			local found
 			for _, group in pairs(self.EnumGroupsIndexed) do
 				local enumType2 = EnumTypo[enumType] or enumType -- hack
-				if enumType2:find("^"..group[1]) then
+				if string.find(enumType2, "^"..group[1]) then
 					EnumGroup[group[1]] = EnumGroup[group[1]] or {}
 					tinsert(EnumGroup[group[1]], {name = enumType, value = enumValue})
 					found = true
@@ -338,7 +297,7 @@ function KethoDoc:DumpLuaEnums(showGameErr)
 	-- print any NUM_LE_* globals not belonging to a group
 	local NumLuaEnum, NumEnumCache = {}, {}
 	for enum, value in pairs(_G) do
-		if type(enum) == "string" and enum:find("^NUM_LE_") then
+		if type(enum) == "string" and string.find(enum, "^NUM_LE_") then
 			NumLuaEnum[enum] = value
 		end
 	end
@@ -351,7 +310,7 @@ function KethoDoc:DumpLuaEnums(showGameErr)
 		end
 	end
 	-- not yet categorized enums
-	if #EnumUngrouped > 0 then
+	if getn(EnumUngrouped) > 0 then
 		eb:InsertLine("\n-- to be categorized")
 		sort(EnumUngrouped, SortEnum)
 		for _, enum in pairs(EnumUngrouped) do
@@ -395,7 +354,7 @@ end
 function KethoDoc:GetFrameXML()
 	local _, t = self:GetAPI()
 	for namespace, v in pairs(_G) do
-		if type(namespace) == "string" and type(v) == "table" and namespace:find("Util$") then
+		if type(namespace) == "string" and type(v) == "table" and string.find(namespace, "Util$") then
 			for funcname, v2 in pairs(v) do
 				if type(v2) == "function" then
 					local name = format("%s.%s", namespace, funcname)
@@ -408,33 +367,19 @@ function KethoDoc:GetFrameXML()
 end
 
 function KethoDoc:DumpFrames()
-	self:DumpLodTable("Frames", self.GetFrames, self.initFrames)
+	self:DumpLodTable("Frames", self:GetFrames())
 end
 
 function KethoDoc:DumpFrameXML()
-	self:DumpLodTable("FrameXML", self.GetFrameXML, self.initFrameXML)
+	self:DumpLodTable("FrameXML", self:GetFrameXML())
 end
 
-function KethoDoc:DumpLodTable(label, getFunc, initTbl)
-	self:LoadLodAddons()
-	local lodTbl = {}
-	for name in pairs(getFunc(self)) do
-		if not initTbl[name] then
-			tinsert(lodTbl, name)
-		end
-	end
-	sort(lodTbl)
-
+function KethoDoc:DumpLodTable(label, tbl)
 	eb:Show()
 	eb:InsertLine(format("local %s = {", label))
-	for _, tbl in pairs(self:SortTable(initTbl, "key")) do
+	for _, tbl in pairs(self:SortTable(tbl, "key")) do
 		eb:InsertLine(format('\t"%s",', tbl.key))
 	end
-	eb:InsertLine("}\n\nlocal LoadOnDemand = {")
-	for _, name in pairs(lodTbl) do
-		eb:InsertLine(format('\t"%s",', name))
-	end
-	eb:InsertLine(format("}\n\nreturn {%s, LoadOnDemand}", label))
 end
 
 function KethoDoc:DumpNonBlizzardDocumented()
@@ -466,37 +411,31 @@ end
 
 -- for auto marking globals in vscode extension
 function KethoDoc:DumpGlobals()
-	self:LoadLodAddons()
 	KethoDocData = {}
 	for k in pairs(_G) do
-		if type(k) == "string" and not k:find("Ketho") and not k:find("table: ") then
+		if type(k) == "string" and not string.find(k, "Ketho") and not string.find(k, "table: ") then
 			KethoDocData[k] = true
 		end
 	end
 end
 
-local currentDump = 0
-local api = {
-	"GetBuildInfo",
-	"DumpGlobalAPI",
-	"DumpWidgetAPI",
-	"DumpEvents",
-	"DumpCVars",
-	"DumpLuaEnums",
-	"DumpFrames",
-	"DumpFrameXML",
-	"WidgetTest",
-}
-
 function KethoDoc:GetBuildInfo()
-	local fs = 'GetBuildInfo() => "%s", "%s", "%s", %d'
-	eb:Show(fs:format(GetBuildInfo()))
+	local version, build, date = GetBuildInfo()
+	return format('GetBuildInfo() => "%s", "%s", "%s"', version, build, date)
 end
 
-function KethoDoc:LazyDump()
-	currentDump = currentDump + 1
-	local func = self[api[currentDump]]
-	if func then
-		func(self)
-	end
+SLASH_KETHODOC1 = "/kd"
+SlashCmdList["KETHODOC"] = function()
+	KethoWindow:Create({
+		{name = "Dump Build Info", callback = function() return KethoDoc:GetBuildInfo() end},
+		{name = "Dump Global API", callback = function() end},
+		{name = "Dump Widget API", callback = function() end},
+		{name = "Dump Events API", callback = function() end},
+		{name = "Dump CVars API", callback = function() end},
+		{name = "Dump Lua Enums", callback = function() end},
+		{name = "Dump Frames", callback = function() end},
+		{name = "Dump Frame XML", callback = function() end},
+		{name = "Test Widgets", callback = function() end},
+	})
+	KethoWindow:Show()
 end

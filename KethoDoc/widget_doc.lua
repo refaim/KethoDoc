@@ -1,3 +1,5 @@
+local _G = getfenv(0)
+
 local WidgetDocumentation
 local widget_systems = {
 	CooldownFrameAPI = "Cooldown",
@@ -14,7 +16,6 @@ local widget_systems = {
 	SimpleAnimTranslationAPI = "Translation",
 	SimpleAnimTranslationLineAPI = "LineTranslation", -- empty
 	SimpleAnimatableObjectAPI = "AnimatableObject",
-	SimpleBrowserAPI = "Browser",
 	SimpleButtonAPI = "Button",
 	SimpleCheckboxAPI = "CheckButton",
 	SimpleColorSelectAPI = "ColorSelect",
@@ -45,22 +46,23 @@ local widget_systems = {
 	-- SharedScriptObjectModelLightDocumentation
 }
 
+-- TODO sync to vanilla widgets
 local widget_tests = {
 	{
 		name = "Texture",
 		actual = CreateFrame("Frame"):CreateTexture(),
 		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Region", "TextureBase", "Texture"},
 	},
-	{
-		name = "MaskTexture",
-		actual = CreateFrame("Frame"):CreateMaskTexture(),
-		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Region", "TextureBase", "MaskTexture"},
-	},
-	{
-		name = "Line",
-		actual = CreateFrame("Frame"):CreateLine(),
-		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Region", "TextureBase", "Line"},
-	},
+	--{
+	--	name = "MaskTexture",
+	--	actual = CreateFrame("Frame"):CreateMaskTexture(),
+	--	expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Region", "TextureBase", "MaskTexture"},
+	--},
+	--{
+	--	name = "Line",
+	--	actual = CreateFrame("Frame"):CreateLine(),
+	--	expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Region", "TextureBase", "Line"},
+	--},
 	{
 		name = "Font",
 		actual = CreateFont(""),
@@ -71,66 +73,66 @@ local widget_tests = {
 		actual = CreateFrame("Frame"):CreateFontString(),
 		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Region", "FontString"},
 	},
-	{
-		name = "AnimationGroup",
-		actual = CreateFrame("Frame"):CreateAnimationGroup(),
-		expected = {"Object", "FrameScriptObject", "AnimationGroup"},
-	},
-	{
-		name = "Animation",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation(),
-		expected = {"Object", "FrameScriptObject", "Animation"},
-	},
-	{
-		name = "Alpha",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Alpha"),
-		expected = {"Object", "FrameScriptObject", "Animation", "Alpha"},
-	},
-	{
-		name = "Rotation",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Rotation"),
-		expected = {"Object", "FrameScriptObject", "Animation", "Rotation"},
-	},
-	{
-		name = "Scale",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Scale"),
-		expected = {"Object", "FrameScriptObject", "Animation", "Scale"},
-	},
-	{
-		name = "LineScale",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("LineScale"),
-		expected = {"Object", "FrameScriptObject", "Animation", "Scale", "LineScale"},
-	},
-	{
-		name = "Translation",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Translation"),
-		expected = {"Object", "FrameScriptObject", "Animation", "Translation"},
-	},
-	{
-		name = "LineTranslation",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("LineTranslation"),
-		expected = {"Object", "FrameScriptObject", "Animation", "Translation", "LineTranslation"},
-	},
-	{
-		name = "TextureCoordTranslation",
-		actual = KethoFrame.animgroup.texcoordtranslation,
-		expected = {"Object", "FrameScriptObject", "Animation", "TextureCoordTranslation"},
-	},
-	{
-		name = "FlipBook",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("FlipBook"),
-		expected = {"Object", "FrameScriptObject", "Animation", "FlipBook"},
-	},
-	{
-		name = "Path",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Path"),
-		expected = {"Object", "FrameScriptObject", "Animation", "Path"},
-	},
-	{
-		name = "ControlPoint",
-		actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Path"):CreateControlPoint(),
-		expected = {"Object", "FrameScriptObject", "ControlPoint"},
-	},
+	--{
+	--	name = "AnimationGroup",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup(),
+	--	expected = {"Object", "FrameScriptObject", "AnimationGroup"},
+	--},
+	--{
+	--	name = "Animation",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation(),
+	--	expected = {"Object", "FrameScriptObject", "Animation"},
+	--},
+	--{
+	--	name = "Alpha",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Alpha"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "Alpha"},
+	--},
+	--{
+	--	name = "Rotation",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Rotation"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "Rotation"},
+	--},
+	--{
+	--	name = "Scale",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Scale"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "Scale"},
+	--},
+	--{
+	--	name = "LineScale",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("LineScale"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "Scale", "LineScale"},
+	--},
+	--{
+	--	name = "Translation",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Translation"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "Translation"},
+	--},
+	--{
+	--	name = "LineTranslation",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("LineTranslation"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "Translation", "LineTranslation"},
+	--},
+	--{
+	--	name = "TextureCoordTranslation",
+	--	actual = KethoFrame.animgroup.texcoordtranslation,
+	--	expected = {"Object", "FrameScriptObject", "Animation", "TextureCoordTranslation"},
+	--},
+	--{
+	--	name = "FlipBook",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("FlipBook"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "FlipBook"},
+	--},
+	--{
+	--	name = "Path",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Path"),
+	--	expected = {"Object", "FrameScriptObject", "Animation", "Path"},
+	--},
+	--{
+	--	name = "ControlPoint",
+	--	actual = CreateFrame("Frame"):CreateAnimationGroup():CreateAnimation("Path"):CreateControlPoint(),
+	--	expected = {"Object", "FrameScriptObject", "ControlPoint"},
+	--},
 	{
 		name = "Frame",
 		actual = CreateFrame("Frame"),
@@ -156,11 +158,11 @@ local widget_tests = {
 		actual = CreateFrame("PlayerModel"),
 		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "Model", "PlayerModel"},
 	},
-	{
-		name = "CinematicModel",
-		actual = CreateFrame("CinematicModel"),
-		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "Model", "PlayerModel", "CinematicModel"},
-	},
+	--{
+	--	name = "CinematicModel",
+	--	actual = CreateFrame("CinematicModel"),
+	--	expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "Model", "PlayerModel", "CinematicModel"},
+	--},
 	{
 		name = "DressUpModel",
 		actual = CreateFrame("DressUpModel"),
@@ -178,11 +180,11 @@ local widget_tests = {
 		actual = CreateFrame("ColorSelect"),
 		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "ColorSelect"},
 	},
-	{
-		name = "Cooldown",
-		actual = CreateFrame("Cooldown"),
-		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "Cooldown"},
-	},
+	--{
+	--	name = "Cooldown",
+	--	actual = CreateFrame("Cooldown"),
+	--	expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "Cooldown"},
+	--},
 	{
 		name = "EditBox",
 		actual = CreateFrame("EditBox", "KethoDocEditBox"),
@@ -224,22 +226,16 @@ local widget_tests = {
 		actual = CreateFrame("StatusBar"),
 		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "StatusBar"},
 	},
-	-- ArchaeologyDigSiteFrame
 	-- QuestPOIFrame
 	-- ScenarioPOIFrame
 	-- FogOfWarFrame
 	-- UnitPositionFrame
-	{
-		name = "Browser",
-		actual = CreateFrame("Browser"),
-		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "Browser"},
-	},
 	-- Checkout
-	{
-		name = "OffScreenFrame",
-		actual = CreateFrame("OffScreenFrame"),
-		expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "OffScreenFrame"},
-	},
+	--{
+	--	name = "OffScreenFrame",
+	--	actual = CreateFrame("OffScreenFrame"),
+	--	expected = {"Object", "FrameScriptObject", "ScriptRegion", "ScriptRegionResizing", "AnimatableObject", "Frame", "OffScreenFrame"},
+	--},
 	-- WorldFrame
 }
 KethoDocEditBox:SetAutoFocus(false)
@@ -387,5 +383,5 @@ function KethoDoc:WidgetDocTest()
 			num_passed = num_passed + 1
 		end
 	end
-	print(format("%d of %d tests passed.", num_passed, #widget_tests))
+	print(format("%d of %d tests passed.", num_passed, getn(widget_tests)))
 end

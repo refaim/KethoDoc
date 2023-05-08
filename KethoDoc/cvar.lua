@@ -1,3 +1,5 @@
+local _G = getfenv(0)
+
 local m = KethoDoc
 -- every time they change something, the help text and/or category seemingly gets lost
 m.cvar_cache = {

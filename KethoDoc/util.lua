@@ -1,3 +1,4 @@
+local _G = getfenv(0)
 
 function KethoDoc:InsertTable(tbl, add)
 	for k, v in pairs(add) do
@@ -29,8 +30,8 @@ end
 
 function KethoDoc:MixinTable(...)
 	local t = {}
-	for i = 1, select("#", ...) do
-		local object = select(i, ...)
+	for i = 1, select("#", unpack(arg)) do
+		local object = select(i, unpack(arg))
 		for name in pairs(object.unique_methods()) do
 			t[name] = true
 		end

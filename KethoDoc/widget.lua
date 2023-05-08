@@ -1,8 +1,9 @@
+local _G = getfenv(0)
 
 local W
 
 local function TryCreateFrame(frameType, ...)
-	local ok, frame = pcall(CreateFrame, frameType, ...)
+	local ok, frame = pcall(CreateFrame, frameType, "", unpack(arg))
 	if ok and frame.GetObjectType then
 		return frame
 	-- else
@@ -702,6 +703,6 @@ function KethoDoc:WidgetTest()
 
 		end
 	end
-	print(format("Widgets: Passed %d of %d tests", passed_count, #widgets))
+	print(format("Widgets: Passed %d of %d tests", passed_count, getn(widgets)))
 	-- Widgets: Passed 52 of 52 tests in 9.2.5 (44232)
 end

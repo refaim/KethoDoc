@@ -1,3 +1,5 @@
+local _G = getfenv(0)
+
 -- sequential table since some enums need to be parsed first before others
 KethoDoc.EnumGroupsIndexed = {
 	{"LE_ACTIONBAR_STATE", "NUM_LE_ACTIONBAR_VISUAL_STATES"},

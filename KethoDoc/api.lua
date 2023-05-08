@@ -1,3 +1,6 @@
+local _G = getfenv(0)
+
+-- TODO modify according to Vanilla
 KethoDoc.LuaAPI = { -- see compat.lua
 	--bit = true,
 	--coroutine = true,
@@ -129,7 +132,7 @@ end
 function KethoDoc:GetNamespaceAPI()
 	local t = {}
 	for systemName, v in pairs(_G) do
-		if type(systemName) == "string" and systemName:find("^C_") and type(v) == "table" then
+		if type(systemName) == "string" and type(v) == "table" then
 			for funcName in pairs(v) do
 				local name = format("%s.%s", systemName, funcName)
 				t[name] = true

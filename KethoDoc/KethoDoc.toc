@@ -1,9 +1,9 @@
-## Interface: 100100
+## Interface: 11200
 ## Version: 1.5.5
 ## Title: KethoDoc
 ## SavedVariables: KethoDocData
 
-editbox.lua
+ui.lua
 KethoDoc.lua
 
 util.lua
@@ -13,4 +13,3 @@ lua_enum.lua
 widget.lua
 widget_doc.lua
 cvar.lua
-loadondemand.lua
