@@ -5,9 +5,11 @@ KethoDoc = {}
 
 ---@return string[]
 local function getGlobalNamespaceFunctions()
+	---@type string[]
+	local lua_modules = {'builtin', 'coroutine', 'debug', 'global', 'io', 'math', 'os', 'string', 'table'}
 	---@type table<string, boolean>
 	local lua_modules_by_name = {}
-	for _, name in ipairs({'builtin', 'coroutine', 'debug', 'global', 'io', 'math', 'os', 'string', 'table'}) do
+	for _, name in ipairs(lua_modules) do
 		lua_modules_by_name[name] = true
 	end
 
