@@ -87,25 +87,6 @@ function KethoDoc:DumpWidgetAPI()
 	eb:InsertLine("}\n\nreturn WidgetAPI")
 end
 
-function KethoDoc:DumpEvents()
-	APIDocumentation_LoadUI()
-	eb:Show()
-	eb:InsertLine("local Events = {")
-	sort(APIDocumentation.systems, function(a, b)
-		return (a.Namespace or a.Name) < (b.Namespace or b.Name)
-	end)
-	for _, system in pairs(APIDocumentation.systems) do
-		if getn(system.Events) > 0 then -- skip systems with no events
-			eb:InsertLine("\t"..(system.Namespace or system.Name).." = {")
-			for _, event in pairs(system.Events) do
-				eb:InsertLine(format('\t\t"%s",', event.LiteralName))
-			end
-			eb:InsertLine("\t},")
-		end
-	end
-	eb:InsertLine("}\n\nreturn Events")
-end
-
 function KethoDoc:DumpCVars()
 	local cvarTbl, commandTbl = {}, {}
 	local test_cvarTbl, test_commandTbl = {}, {}
@@ -378,7 +359,6 @@ SlashCmdList['KETHODOC'] = function()
 		{'Dump Global Functions', getGlobalNamespaceFunctions},
 		{'Dump Global Frames', getGlobalFrames},
 		{'Dump Widget API'},
-		{'Dump Events API'},
 		{'Dump CVars API'},
 		{'Dump Lua Enums'},
 		{'Dump Frame XML'},
