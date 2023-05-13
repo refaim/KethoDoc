@@ -149,18 +149,28 @@ function KethoWindow:Create(actions)
         local actionButtons = self:__CreateActionButtons(frame, actions, function(callback)
             return function()
                 local data = callback()
-                if type(data) == 'table' then
-                    data = table.concat(data, '\n')
+                local text
+                if type(data) == 'string' then
+                    text = data
+                elseif type(data) == 'table' then
+                    ---@type string[]
+                    local strings = {}
+                    if data[1] ~= nil then
+                        strings = data
+                    else
+                        for k, v in pairs(data) do
+                            tinsert(strings, k .. '=' .. v)
+                        end
+                    end
+                    sort(strings)
+                    text = table.concat(strings, '\n')
                 end
-                editBox:SetText(data)
+                editBox:SetText(text)
             end
         end)
         self:__SetupLayout(frame, scrollFrame, editBox, actionButtons)
         self.frame = frame
     end
-
-    -- TODO add button to select all text
-    -- TODO fix scrolling
 end
 
 function KethoWindow:Show()

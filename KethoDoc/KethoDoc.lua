@@ -3,7 +3,7 @@ local _G = getfenv(0)
 
 KethoDoc = {}
 
----@return table
+---@return string[]
 local function getGlobalNamespaceFunctions()
 	---@type table<string, boolean>
 	local lua_modules_by_name = {}
@@ -23,30 +23,22 @@ local function getGlobalNamespaceFunctions()
 			end
 		end
 	end
-
-	sort(functions)
-
 	return functions
 end
 
-function KethoDoc:DumpLuaAPI()
-	local api = {}
-	for apiName in pairs(self.LuaAPI) do
-		tinsert(api, apiName)
-	end
-	for _, tblName in pairs({"bit", "coroutine", "math", "string", "table"}) do
-		for methodName, value in pairs(_G[tblName]) do
-			if type(value) == "function" then -- ignore math.PI, math.huge
-				tinsert(api, format("%s.%s", tblName, methodName))
+---@return table<string, string>
+local function getGlobalFrames()
+	---@type table<string, string>
+	local name_to_type = {}
+	for k, v in pairs(_G) do
+		if type(v) == 'table' and v.GetParent ~= nil and strfind(k, '^Ketho') == nil then
+			local parent = v:GetParent()
+			if parent == nil or parent == UIParent or parent == WorldFrame then
+				name_to_type[k] = v:GetObjectType()
 			end
 		end
 	end
-	tDeleteItem(api, "string.rtgsub") -- RestrictedTable_rtgsub()
-	sort(api)
-	eb:InsertLine("local LuaAPI = {")
-	for _, apiName in pairs(api) do
-		eb:InsertLine(format('\t"%s",', apiName))
-	end
+	return name_to_type
 end
 
 function KethoDoc:DumpWidgetAPI()
@@ -339,24 +331,6 @@ function KethoDoc:DumpConstants()
 	end
 end
 
-function KethoDoc:GetFrames()
-	local t = {}
-	for _, v in pairs(_G) do
-		-- cant interact with forbidden frames; only check for named frames
-		-- font objects can be forbidden (and have no parent)
-		if type(v) == "table" and v.IsForbidden and not v:IsForbidden() and v:GetName() and v.GetParent then
-			local parent = v:GetParent()
-			local name = v:GetDebugName()
-			if not parent or (parent == UIParent) or (parent == WorldFrame) then
-				t[name] = true
-			end
-		end
-	end
-	t.KethoFrame = nil
-	t.KethoDocEditBox = nil
-	return t
-end
-
 function KethoDoc:GetFrameXML()
 	local _, t = self:GetAPI()
 	for namespace, v in pairs(_G) do
@@ -370,10 +344,6 @@ function KethoDoc:GetFrameXML()
 		end
 	end
 	return t
-end
-
-function KethoDoc:DumpFrames()
-	self:DumpLodTable("Frames", self:GetFrames())
 end
 
 function KethoDoc:DumpFrameXML()
@@ -403,15 +373,15 @@ SLASH_KETHODOC1 = '/kd'
 SlashCmdList['KETHODOC'] = function()
 	---@type Action[]
 	local actions = {
-		-- TODO dump global variables like DEFAULT_CHAT_FRAME and UIParent
 		{'Dump Global Functions', getGlobalNamespaceFunctions},
+		{'Dump Global Frames', getGlobalFrames},
 		{'Dump Widget API'},
 		{'Dump Events API'},
 		{'Dump CVars API'},
 		{'Dump Lua Enums'},
-		{'Dump Frames'},
 		{'Dump Frame XML'},
 		{'Test Widgets'},
+		{'Dump Everything'},
 	}
 	KethoWindow:Create(actions)
 	KethoWindow:Show()
