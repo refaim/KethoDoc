@@ -1,6 +1,9 @@
+---@type table
 local _G = getfenv(0)
 
 KethoWindow = {}
+
+local FRAME_NAME = 'KethoWindowFrame'
 
 ---@class Action
 ---@field name string
@@ -30,7 +33,7 @@ end
 
 ---@return Frame
 function KethoWindow:__CreateFrame()
-    local frame = CreateFrame('Frame', 'KethoWindowFrame', UIParent)
+    local frame = CreateFrame('Frame', FRAME_NAME, UIParent)
 
     frame:SetPoint('CENTER', UIParent)
     frame:SetBackdrop({
@@ -130,13 +133,21 @@ end
 
 ---@param actions Action[]
 function KethoWindow:Create(actions)
-    local frame = self:__CreateFrame()
-    local scrollFrame, editBox = self:__CreateTextControls(frame)
-    local actionButtons = self:__CreateActionButtons(frame, actions, function(callback)
-        return function() editBox:SetText(callback()) end
-    end)
-    self:__SetupLayout(frame, scrollFrame, editBox, actionButtons)
-    self.frame = frame
+    if _G[FRAME_NAME] == nil then
+        local frame = self:__CreateFrame()
+        local scrollFrame, editBox = self:__CreateTextControls(frame)
+        local actionButtons = self:__CreateActionButtons(frame, actions, function(callback)
+            return function()
+                local data = callback()
+                if type(data) == 'table' then
+                    data = table.concat(data, '\n')
+                end
+                editBox:SetText(data)
+            end
+        end)
+        self:__SetupLayout(frame, scrollFrame, editBox, actionButtons)
+        self.frame = frame
+    end
 
     -- TODO add button to select all text
     -- TODO fix scrolling

@@ -1,3 +1,4 @@
+---@type table<string, any>
 local _G = getfenv(0)
 
 KethoDoc = {}
@@ -5,22 +6,34 @@ KethoDoc = {}
 KethoDoc.isMainline = false -- TODO remove this var
 KethoDoc.branch = "vanilla"
 
-function KethoDoc:GetAPI()
-	local api_func, framexml_func = self:GetGlobalAPI()
-	self:InsertTable(api_func, self:GetNamespaceAPI())
-	return api_func, framexml_func
+function KethoDoc:GetBuildInfo()
+	local version, build, date = GetBuildInfo()
+	return format('GetBuildInfo() => "%s", "%s", "%s"', version, build, date)
 end
 
-function KethoDoc:DumpGlobalAPI()
-	eb:Show()
-	eb:InsertLine("local GlobalAPI = {")
-	for _, tbl in pairs(self:SortTable(self:GetAPI(), "key")) do
-		eb:InsertLine(format('\t"%s",', tbl.key))
+function KethoDoc:GetGlobalFunctions()
+	---@type table<string, boolean>
+	local lua_modules_by_name = {}
+	for _, name in ipairs({'builtin', 'coroutine', 'debug', 'global', 'io', 'math', 'os', 'string', 'table'}) do
+		lua_modules_by_name[name] = true
 	end
-	eb:InsertLine("}\n")
-	--TODO
-	--self:DumpLuaAPI()
-	eb:InsertLine("}\n\nreturn {GlobalAPI, LuaAPI}")
+
+	local functions = {}
+	for global_name, global_value in pairs(_G) do
+		if type(global_value) == 'function' then
+			tinsert(functions, global_name)
+		elseif type(global_value) == 'table' and lua_modules_by_name[global_name] ~= nil then
+			for name_in_module, value_in_module in pairs(global_value) do
+				if type(value_in_module) == 'function' then
+					tinsert(functions, global_name .. '.' .. name_in_module)
+				end
+			end
+		end
+	end
+
+	sort(functions)
+
+	return functions
 end
 
 function KethoDoc:DumpLuaAPI()
@@ -419,16 +432,12 @@ function KethoDoc:DumpGlobals()
 	end
 end
 
-function KethoDoc:GetBuildInfo()
-	local version, build, date = GetBuildInfo()
-	return format('GetBuildInfo() => "%s", "%s", "%s"', version, build, date)
-end
-
 SLASH_KETHODOC1 = "/kd"
 SlashCmdList["KETHODOC"] = function()
 	KethoWindow:Create({
+		-- TODO dump global variables like DEFAULT_CHAT_FRAME and UIParent
 		{name = "Dump Build Info", callback = function() return KethoDoc:GetBuildInfo() end},
-		{name = "Dump Global API", callback = function() end},
+		{name = "Dump Global Functions", callback = function() return KethoDoc:GetGlobalFunctions() end},
 		{name = "Dump Widget API", callback = function() end},
 		{name = "Dump Events API", callback = function() end},
 		{name = "Dump CVars API", callback = function() end},
