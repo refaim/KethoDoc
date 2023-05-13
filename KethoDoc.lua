@@ -20,7 +20,7 @@ local function getGlobalNamespaceFunctions()
 		elseif type(global_value) == 'table' and lua_modules_by_name[global_name] ~= nil then
 			for name_in_module, value_in_module in pairs(global_value) do
 				if type(value_in_module) == 'function' then
-					tinsert(functions, global_name .. '.' .. name_in_module)
+					tinsert(functions, format('%s.%s', global_name, name_in_module))
 				end
 			end
 		end
@@ -32,11 +32,11 @@ end
 local function getGlobalFrames()
 	---@type table<string, string>
 	local name_to_type = {}
-	for k, v in pairs(_G) do
-		if type(v) == 'table' and v.GetParent ~= nil and strfind(k, '^Ketho') == nil then
-			local parent = v:GetParent()
+	for name, value in pairs(_G) do
+		if type(value) == 'table' and value.GetParent ~= nil and strfind(name, '^Ketho') == nil then
+			local parent = value:GetParent()
 			if parent == nil or parent == UIParent or parent == WorldFrame then
-				name_to_type[k] = v:GetObjectType()
+				name_to_type[name] = value:GetObjectType()
 			end
 		end
 	end
@@ -314,33 +314,6 @@ function KethoDoc:DumpConstants()
 	end
 end
 
-function KethoDoc:GetFrameXML()
-	local _, t = self:GetAPI()
-	for namespace, v in pairs(_G) do
-		if type(namespace) == "string" and type(v) == "table" and string.find(namespace, "Util$") then
-			for funcname, v2 in pairs(v) do
-				if type(v2) == "function" then
-					local name = format("%s.%s", namespace, funcname)
-					t[name] = true
-				end
-			end
-		end
-	end
-	return t
-end
-
-function KethoDoc:DumpFrameXML()
-	self:DumpLodTable("FrameXML", self:GetFrameXML())
-end
-
-function KethoDoc:DumpLodTable(label, tbl)
-	eb:Show()
-	eb:InsertLine(format("local %s = {", label))
-	for _, tbl in pairs(self:SortTable(tbl, "key")) do
-		eb:InsertLine(format('\t"%s",', tbl.key))
-	end
-end
-
 -- TODO
 -- for auto marking globals in vscode extension
 function KethoDoc:DumpGlobals()
@@ -358,10 +331,10 @@ SlashCmdList['KETHODOC'] = function()
 	local actions = {
 		{'Dump Global Functions', getGlobalNamespaceFunctions},
 		{'Dump Global Frames', getGlobalFrames},
+		{'Dump Other Global Vars'},
 		{'Dump Widget API'},
 		{'Dump CVars API'},
 		{'Dump Lua Enums'},
-		{'Dump Frame XML'},
 		{'Test Widgets'},
 		{'Dump Everything'},
 	}
