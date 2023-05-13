@@ -3,15 +3,8 @@ local _G = getfenv(0)
 
 KethoDoc = {}
 
-KethoDoc.isMainline = false -- TODO remove this var
-KethoDoc.branch = "vanilla"
-
-function KethoDoc:GetBuildInfo()
-	local version, build, date = GetBuildInfo()
-	return format('GetBuildInfo() => "%s", "%s", "%s"', version, build, date)
-end
-
-function KethoDoc:GetGlobalFunctions()
+---@return table
+local function getGlobalNamespaceFunctions()
 	---@type table<string, boolean>
 	local lua_modules_by_name = {}
 	for _, name in ipairs({'builtin', 'coroutine', 'debug', 'global', 'io', 'math', 'os', 'string', 'table'}) do
@@ -395,33 +388,7 @@ function KethoDoc:DumpLodTable(label, tbl)
 	end
 end
 
-function KethoDoc:DumpNonBlizzardDocumented()
-	local api = self:GetAPI()
-	local BAD = {}
-	UIParentLoadAddOn("Blizzard_APIDocumentation")
-	for _, apiTable in pairs(APIDocumentation.functions) do
-		if apiTable.System.Namespace then
-			local name = format("%s.%s", apiTable.System.Namespace, apiTable.Name)
-			BAD[name] = true
-		else
-			BAD[apiTable.Name] = true
-		end
-	end
-	local nonDoc = {}
-	for name in pairs(api) do
-		if not BAD[name] then
-			nonDoc[name] = true
-		end
-	end
-
-	eb:Show()
-	eb:InsertLine("local NonBlizzardDocumented = {")
-	for _, tbl in pairs(self:SortTable(nonDoc, "key")) do
-		eb:InsertLine(format('\t"%s",', tbl.key))
-	end
-	eb:InsertLine("}\n\nreturn NonBlizzardDocumented")
-end
-
+-- TODO
 -- for auto marking globals in vscode extension
 function KethoDoc:DumpGlobals()
 	KethoDocData = {}
@@ -432,19 +399,20 @@ function KethoDoc:DumpGlobals()
 	end
 end
 
-SLASH_KETHODOC1 = "/kd"
-SlashCmdList["KETHODOC"] = function()
-	KethoWindow:Create({
+SLASH_KETHODOC1 = '/kd'
+SlashCmdList['KETHODOC'] = function()
+	---@type Action[]
+	local actions = {
 		-- TODO dump global variables like DEFAULT_CHAT_FRAME and UIParent
-		{name = "Dump Build Info", callback = function() return KethoDoc:GetBuildInfo() end},
-		{name = "Dump Global Functions", callback = function() return KethoDoc:GetGlobalFunctions() end},
-		{name = "Dump Widget API", callback = function() end},
-		{name = "Dump Events API", callback = function() end},
-		{name = "Dump CVars API", callback = function() end},
-		{name = "Dump Lua Enums", callback = function() end},
-		{name = "Dump Frames", callback = function() end},
-		{name = "Dump Frame XML", callback = function() end},
-		{name = "Test Widgets", callback = function() end},
-	})
+		{'Dump Global Functions', getGlobalNamespaceFunctions},
+		{'Dump Widget API'},
+		{'Dump Events API'},
+		{'Dump CVars API'},
+		{'Dump Lua Enums'},
+		{'Dump Frames'},
+		{'Dump Frame XML'},
+		{'Test Widgets'},
+	}
+	KethoWindow:Create(actions)
 	KethoWindow:Show()
 end

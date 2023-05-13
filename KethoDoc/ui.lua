@@ -6,11 +6,11 @@ KethoWindow = {}
 local FRAME_NAME = 'KethoWindowFrame'
 
 ---@class Action
----@field name string
----@field callback fun():string
+---@field [1] string
+---@field [2] nil|fun():string
 
 ---@param name string
----@param onclick function
+---@param onclick function|nil
 ---@param parent Frame
 ---@return Button
 local function createButton(name, onclick, parent)
@@ -20,14 +20,18 @@ local function createButton(name, onclick, parent)
         'GameMenuButtonTemplate')
     button:SetText(name)
     button:SetWidth(button:GetTextWidth() + 16 * 2)
-    button:SetScript('OnClick', function()
-        local oldText = button:GetText()
-        button:SetText('Loading...')
+    if onclick == nil then
         button:Disable()
-        onclick()
-        button:Enable()
-        button:SetText(oldText)
-    end)
+    else
+        button:SetScript('OnClick', function()
+            local oldText = button:GetText()
+            button:SetText('Loading...')
+            button:Disable()
+            onclick()
+            button:Enable()
+            button:SetText(oldText)
+        end)
+    end
     return button
 end
 
@@ -86,7 +90,13 @@ function KethoWindow:__CreateActionButtons(frame, actions, onclick)
     local buttons = {}
     local maxActionButtonWidth = 0
     for _, action in ipairs(actions) do
-        local button = createButton(action.name, onclick(action.callback), frame)
+        local name = action[1]
+        local callback = action[2]
+        local handle
+        if type(callback) == 'function' then
+            handle = onclick(--[[---@type function]] callback)
+        end
+        local button = createButton(name, handle, frame)
         maxActionButtonWidth = max(maxActionButtonWidth, button:GetWidth())
         tinsert(buttons, button)
     end
