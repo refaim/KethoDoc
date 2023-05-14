@@ -13,9 +13,9 @@ local FRAME_NAME = 'KethoWindowFrame'
 ---@param onclick function|nil
 ---@param parent Frame
 ---@return Button
-local function createButton(name, onclick, parent)
+local function create_button(name, onclick, parent)
     local button = CreateFrame('Button',
-        'KethoWindow' .. string.gsub(name, '[_%s]+', '') .. 'Button',
+        format('KethoWindow%sButton', gsub(name, '[_%s]+', '')),
         parent,
         'GameMenuButtonTemplate')
     button:SetText(name)
@@ -24,19 +24,19 @@ local function createButton(name, onclick, parent)
         button:Disable()
     else
         button:SetScript('OnClick', function()
-            local oldText = button:GetText()
+            local old_text = button:GetText()
             button:SetText('Loading...')
             button:Disable()
             onclick()
             button:Enable()
-            button:SetText(oldText)
+            button:SetText(old_text)
         end)
     end
     return button
 end
 
 ---@return Frame
-function KethoWindow:__CreateFrame()
+function KethoWindow:__create_frame()
     local frame = CreateFrame('Frame', FRAME_NAME, UIParent)
 
     frame:SetPoint('CENTER', UIParent)
@@ -68,27 +68,27 @@ end
 
 ---@param frame Frame
 ---@return ScrollFrame, EditBox
-function KethoWindow:__CreateTextControls(frame)
-    local scrollFrame = CreateFrame('ScrollFrame', 'KethoWindowScrollFrame', frame, 'UIPanelScrollFrameTemplate')
+function KethoWindow:__create_text_controls(frame)
+    local scroll_frame = CreateFrame('ScrollFrame', 'KethoWindowScrollFrame', frame, 'UIPanelScrollFrameTemplate')
 
-    local editBox = CreateFrame('EditBox', 'KethoWindowEditBox', scrollFrame)
-    scrollFrame:SetScrollChild(editBox)
-    editBox:SetMultiLine(true)
-    editBox:SetAutoFocus(false)
-    editBox:SetFontObject('ChatFontNormal')
-    editBox:SetScript('OnEscapePressed', function () editBox:ClearFocus() end)
+    local edit_box = CreateFrame('EditBox', 'KethoWindowEditBox', scroll_frame)
+    scroll_frame:SetScrollChild(edit_box)
+    edit_box:SetMultiLine(true)
+    edit_box:SetAutoFocus(false)
+    edit_box:SetFontObject('ChatFontNormal')
+    edit_box:SetScript('OnEscapePressed', function () edit_box:ClearFocus() end)
 
-    return scrollFrame, editBox
+    return scroll_frame, edit_box
 end
 
 ---@param frame Frame
 ---@param actions Action[]
 ---@param onclick fun(callback:function):function
 ---@return Button[]
-function KethoWindow:__CreateActionButtons(frame, actions, onclick)
+function KethoWindow:__create_action_buttons(frame, actions, onclick)
     ---@type Button[]
     local buttons = {}
-    local maxActionButtonWidth = 0
+    local max_action_button_width = 0
     for _, action in ipairs(actions) do
         local name = action[1]
         local callback = action[2]
@@ -96,64 +96,64 @@ function KethoWindow:__CreateActionButtons(frame, actions, onclick)
         if type(callback) == 'function' then
             handle = onclick(--[[---@type function]] callback)
         end
-        local button = createButton(name, handle, frame)
-        maxActionButtonWidth = max(maxActionButtonWidth, button:GetWidth())
+        local button = create_button(name, handle, frame)
+        max_action_button_width = max(max_action_button_width, button:GetWidth())
         tinsert(buttons, button)
     end
     for _, button in ipairs(buttons) do
-        button:SetWidth(maxActionButtonWidth)
+        button:SetWidth(max_action_button_width)
     end
     return buttons
 end
 
 ---@param frame Frame
----@param scrollFrame ScrollFrame
----@param editBox EditBox
----@param actionButtons Button[]
-function KethoWindow:__SetupLayout(frame, scrollFrame, editBox, actionButtons)
+---@param scroll_frame ScrollFrame
+---@param edit_box EditBox
+---@param action_buttons Button[]
+function KethoWindow:__setup_layout(frame, scroll_frame, edit_box, action_buttons)
     ---@type Region|nil
     local anchor
     ---@type WidgetAnchorPoint|nil
-    local anchorPoint
+    local anchor_point
 
-    local vertButtonInterval = 1
-    for _, button in ipairs(actionButtons) do
+    local vert_button_interval = 1
+    for _, button in ipairs(action_buttons) do
         button:SetPoint('LEFT', frame, 'LEFT', 16, 0)
         if anchor ~= nil then
-            button:SetPoint('TOP', anchor, anchorPoint, 0, -vertButtonInterval)
+            button:SetPoint('TOP', anchor, anchor_point, 0, -vert_button_interval)
         end
         anchor = button
-        anchorPoint = 'BOTTOM'
+        anchor_point = 'BOTTOM'
     end
 
-    local topButton = actionButtons[1]
-    local actionButtonVerticalPadding = 32
-    topButton:SetPoint('TOP', frame, 'TOP', 0, -actionButtonVerticalPadding)
+    local top_button = action_buttons[1]
+    local vert_button_padding = 32
+    top_button:SetPoint('TOP', frame, 'TOP', 0, -vert_button_padding)
     frame:SetWidth(500)
-    frame:SetHeight(2 * actionButtonVerticalPadding + getn(actionButtons) * topButton:GetHeight() + (getn(actionButtons) - 1) * vertButtonInterval)
+    frame:SetHeight(2 * vert_button_padding + getn(action_buttons) * top_button:GetHeight() + (getn(action_buttons) - 1) * vert_button_interval)
 
-    local bottomButton = actionButtons[getn(actionButtons)]
-    scrollFrame:SetPoint('TOPLEFT', topButton, 'TOPRIGHT', 8, 0)
-    scrollFrame:SetPoint('RIGHT', frame, 'RIGHT', -40, 0)
-    scrollFrame:SetPoint('BOTTOM', bottomButton, 'BOTTOM', 0, 8)
+    local bottomButton = action_buttons[getn(action_buttons)]
+    scroll_frame:SetPoint('TOPLEFT', top_button, 'TOPRIGHT', 8, 0)
+    scroll_frame:SetPoint('RIGHT', frame, 'RIGHT', -40, 0)
+    scroll_frame:SetPoint('BOTTOM', bottomButton, 'BOTTOM', 0, 8)
 
-    editBox:SetPoint('TOPLEFT', scrollFrame, 'TOPLEFT')
-    editBox:SetPoint('BOTTOMRIGHT', scrollFrame, 'BOTTOMRIGHT')
+    edit_box:SetPoint('TOPLEFT', scroll_frame, 'TOPLEFT')
+    edit_box:SetPoint('BOTTOMRIGHT', scroll_frame, 'BOTTOMRIGHT')
 end
 
 ---@param actions Action[]
 function KethoWindow:Create(actions)
     if _G[FRAME_NAME] == nil then
-        local frame = self:__CreateFrame()
-        local scrollFrame, editBox = self:__CreateTextControls(frame)
-        local actionButtons = self:__CreateActionButtons(frame, actions, function(callback)
-            return function() editBox:SetText(callback()) end
+        local frame = self:__create_frame()
+        local scroll_frame, edit_box = self:__create_text_controls(frame)
+        local action_buttons = self:__create_action_buttons(frame, actions, function(callback)
+            return function() edit_box:SetText(callback()) end
         end)
-        self:__SetupLayout(frame, scrollFrame, editBox, actionButtons)
-        self.frame = frame
+        self:__setup_layout(frame, scroll_frame, edit_box, action_buttons)
+        self.__frame = frame
     end
 end
 
 function KethoWindow:Show()
-    self.frame:Show()
+    self.__frame:Show()
 end

@@ -1,15 +1,14 @@
 ---@type table<string, any>
 local _G = getfenv(0)
 
---TODO rename all to snake_case
 --TODO refactor adoon: move UI to main lua file, move getters to some utility files
 
 KethoDoc = {}
 
 ---@return string[]
-local function getGlobalNamespaceFunctions()
+local function get_global_namespace_functions()
 	---@type string[]
-	local lua_modules = {'builtin', 'coroutine', 'debug', 'global', 'io', 'math', 'os', 'string', 'table'}
+	local lua_modules = { 'builtin', 'coroutine', 'debug', 'global', 'io', 'math', 'os', 'string', 'table' }
 	---@type table<string, boolean>
 	local lua_modules_by_name = {}
 	for _, name in ipairs(lua_modules) do
@@ -32,7 +31,7 @@ local function getGlobalNamespaceFunctions()
 end
 
 ---@return table<string, string>
-local function getGlobalFrames()
+local function get_global_frames()
 	---@type table<string, string>
 	local name_to_type = {}
 	for name, value in pairs(_G) do
@@ -46,12 +45,12 @@ local function getGlobalFrames()
 	return name_to_type
 end
 
-local function getGlobalConstants()
+local function get_global_constants()
 	---@type table<string, boolean|number|string>
 	local name_to_value = {}
 
 	---@type table<string, boolean>
-	local const_types_set = {['boolean'] = true, ['number'] = true, ['string'] = true}
+	local const_types_set = { ['boolean'] = true, ['number'] = true, ['string'] = true }
 
 	--TODO move to global vars dumper, calculate diff between two sets
 	---@type table<string, boolean>
@@ -66,6 +65,7 @@ local function getGlobalConstants()
 		local type_matches = const_types_set[type(value)] ~= nil
 		local name_matches = strfind(name, '^[%u%d_]+$') or strfind(name, '^VOICEMACRO')
 		if type_matches and name_matches and vars_to_exclude[name] == nil then
+			--TODO return value AND type
 			name_to_value[name] = value
 		end
 	end
@@ -171,10 +171,10 @@ SlashCmdList['KETHODOC'] = function()
 
 	---@type Action[]
 	local actions = {
-		{'Dump Global Functions', make_callback(getGlobalNamespaceFunctions)},
-		{'Dump Global Frames', make_callback(getGlobalFrames)},
-		{'Dump Other Global Vars'},
-		{'Dump Global Constants', make_callback(getGlobalConstants)},
+		{'Dump Global Functions', make_callback(get_global_namespace_functions)},
+		{'Dump Global Frames', make_callback(get_global_frames)},
+		{'Dump Other Global Vars'}, --TODO probably smth like (_G - funcs - consts - lua_modules)
+		{'Dump Global Constants', make_callback(get_global_constants)},
 		{'Dump Widget API'},
 		{'Test Widgets'},
 		{'Dump Everything'},
