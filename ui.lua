@@ -147,26 +147,7 @@ function KethoWindow:Create(actions)
         local frame = self:__CreateFrame()
         local scrollFrame, editBox = self:__CreateTextControls(frame)
         local actionButtons = self:__CreateActionButtons(frame, actions, function(callback)
-            return function()
-                local data = callback()
-                local text
-                if type(data) == 'string' then
-                    text = data
-                elseif type(data) == 'table' then
-                    ---@type string[]
-                    local strings = {}
-                    if data[1] ~= nil then
-                        strings = data
-                    else
-                        for k, v in pairs(data) do
-                            tinsert(strings, k .. '=' .. v)
-                        end
-                    end
-                    sort(strings)
-                    text = table.concat(strings, '\n')
-                end
-                editBox:SetText(text)
-            end
+            return function() editBox:SetText(callback()) end
         end)
         self:__SetupLayout(frame, scrollFrame, editBox, actionButtons)
         self.frame = frame

@@ -1,11 +1,5 @@
 local _G = getfenv(0)
 
-function KethoDoc:InsertTable(tbl, add)
-	for k, v in pairs(add) do
-		tbl[k] = v
-	end
-end
-
 function KethoDoc:RemoveTable(tbl, rem)
 	local t = CopyTable(tbl)
 	for k in pairs(rem) do

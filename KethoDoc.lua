@@ -1,6 +1,8 @@
 ---@type table<string, any>
 local _G = getfenv(0)
 
+--TODO rename all to snake_case
+
 KethoDoc = {}
 
 ---@return string[]
@@ -33,7 +35,7 @@ local function getGlobalFrames()
 	---@type table<string, string>
 	local name_to_type = {}
 	for name, value in pairs(_G) do
-		if type(value) == 'table' and value.GetParent ~= nil and strfind(name, '^Ketho') == nil then
+		if type(value) == 'table' and value.GetParent ~= nil then
 			local parent = value:GetParent()
 			if parent == nil or parent == UIParent or parent == WorldFrame then
 				name_to_type[name] = value:GetObjectType()
@@ -41,6 +43,32 @@ local function getGlobalFrames()
 		end
 	end
 	return name_to_type
+end
+
+local function getGlobalConstants()
+	---@type table<string, boolean|number|string>
+	local name_to_value = {}
+
+	---@type table<string, boolean>
+	local const_types_set = {['boolean'] = true, ['number'] = true, ['string'] = true}
+
+	--TODO move to global vars dumper, calculate diff between two sets
+	---@type table<string, boolean>
+	local vars_to_exclude = {
+		['BUFF_ALPHA_VALUE'] = true,
+		['CURSOR_OLD_X'] = true,
+		['CURSOR_OLD_Y'] = true,
+		['_'] = true,
+	}
+
+	for name, value in pairs(_G) do
+		local type_matches = const_types_set[type(value)] ~= nil
+		local name_matches = strfind(name, '^[%u%d_]+$') or strfind(name, '^VOICEMACRO')
+		if type_matches and name_matches and vars_to_exclude[name] == nil then
+			name_to_value[name] = value
+		end
+	end
+	return name_to_value
 end
 
 function KethoDoc:DumpWidgetAPI()
@@ -160,161 +188,6 @@ function KethoDoc:DumpCVars()
 	eb:InsertLine("\nreturn {CVars, PTR}")
 end
 
-local EnumTypo = { -- ACCOUNT -> ACCCOUNT (3 Cs)
-	LE_FRAME_TUTORIAL_ACCOUNT_CLUB_FINDER_NEW_COMMUNITY_JOINED = "LE_FRAME_TUTORIAL_ACCCOUNT_CLUB_FINDER_NEW_COMMUNITY_JOINED",
-}
-
-local function SortEnum(a, b)
-	if a.value ~= b.value then
-		return a.value < b.value
-	else
-		return a.name < b.name
-	end
-end
-
--- pretty dumb way without even using bitwise op
-local function IsBitEnum(tbl, name)
-	local t = tInvert(tbl)
-	if name == "Damageclass" then
-		return true
-	end
-	for i = 1, 3 do
-		if not t[2^i] then
-			return false
-		end
-	end
-	if t[3] or t[5] or t[7] then
-		return false
-	end
-	return true
-end
-
--- kind of messy; need to refactor this
-function KethoDoc:DumpLuaEnums(showGameErr)
-	self.EnumGroups = {}
-	for _, v in pairs(self.EnumGroupsIndexed) do
-		self.EnumGroups[v[1]] = v[2]
-	end
-	-- Enum table
-	eb:Show()
-	eb:InsertLine("Enum = {")
-	local enums = {}
-	for name in pairs(Enum) do
-		if not string.find(name, "Meta$") then
-			tinsert(enums, name)
-		end
-	end
-	sort(enums)
-
-	for _, name in pairs(enums) do
-		local TableEnum = {}
-		eb:InsertLine("\t"..name.." = {")
-		for enumType, enumValue in pairs(Enum[name]) do
-			tinsert(TableEnum, {name = enumType, value = enumValue})
-		end
-		sort(TableEnum, SortEnum)
-		local numberFormat = IsBitEnum(Enum[name], name) and "0x%X" or "%u"
-		for _, enum in pairs(TableEnum) do
-			if type(enum.value) == "string" then -- 64 bit enum
-				numberFormat = '"%s"'
-			elseif enum.value < 0 then
-				numberFormat = "%d"
-			end
-			eb:InsertLine(format("\t\t%s = %s,", enum.name, format(numberFormat, enum.value)))
-		end
-		eb:InsertLine("\t},")
-	end
-	eb:InsertLine("}")
-	self:DumpConstants()
-
-	-- check if a NUM_LE still exists
-	-- for _, NUM_LE in pairs(self.EnumGroups) do
-	-- 	if type(NUM_LE) == "string" and not _G[NUM_LE] then
-	-- 		print("Removed: ", NUM_LE)
-	-- 	end
-	-- end
-	local EnumGroup, EnumGroupSorted = {}, {}
-	local EnumUngrouped = {}
-	-- LE_* globals
-	for enumType, enumValue in pairs(_G) do
-		if type(enumType) == "string" and string.find(enumType, "^LE_") and (showGameErr or not string.find(enumType, "GAME_ERR")) then
-			-- group enums together
-			local found
-			for _, group in pairs(self.EnumGroupsIndexed) do
-				local enumType2 = EnumTypo[enumType] or enumType -- hack
-				if string.find(enumType2, "^"..group[1]) then
-					EnumGroup[group[1]] = EnumGroup[group[1]] or {}
-					tinsert(EnumGroup[group[1]], {name = enumType, value = enumValue})
-					found = true
-					break
-				end
-			end
-			if not found then
-				tinsert(EnumUngrouped, {name = enumType, value = enumValue})
-			end
-		end
-	end
-	-- sort groups by name
-	for groupName in pairs(EnumGroup) do
-		tinsert(EnumGroupSorted, groupName)
-	end
-	sort(EnumGroupSorted)
-	-- sort values in groups
-	for _, group in pairs(EnumGroup) do
-		sort(group, SortEnum)
-	end
-	-- print group enums
-	for _, group in pairs(EnumGroupSorted) do
-		eb:InsertLine("")
-		local numEnum = self.EnumGroups[group]
-		local groupEnum = _G[numEnum]
-		if groupEnum then
-			eb:InsertLine(format("%s = %d", numEnum, groupEnum))
-		end
-		for _, tbl in pairs(EnumGroup[group]) do
-			eb:InsertLine(format("%s = %d", tbl.name, tbl.value))
-		end
-	end
-	-- print any NUM_LE_* globals not belonging to a group
-	local NumLuaEnum, NumEnumCache = {}, {}
-	for enum, value in pairs(_G) do
-		if type(enum) == "string" and string.find(enum, "^NUM_LE_") then
-			NumLuaEnum[enum] = value
-		end
-	end
-	for _, numEnum in pairs(self.EnumGroups) do
-		NumEnumCache[numEnum] = true
-	end
-	for numEnum in pairs(NumLuaEnum) do
-		if not NumEnumCache[numEnum] then
-			eb:InsertLine(format("%s = %d", numEnum, _G[numEnum]))
-		end
-	end
-	-- not yet categorized enums
-	if getn(EnumUngrouped) > 0 then
-		eb:InsertLine("\n-- to be categorized")
-		sort(EnumUngrouped, SortEnum)
-		for _, enum in pairs(EnumUngrouped) do
-			eb:InsertLine(format("%s = %d", enum.name, enum.value))
-		end
-	end
-end
-
-function KethoDoc:DumpConstants()
-	if Constants then
-		eb:InsertLine("\nConstants = {")
-		for _, t1 in pairs(self:SortTable(Constants, "key")) do
-			eb:InsertLine(format("\t%s = {", t1.key))
-			for _, t2 in pairs(self:SortTable(t1.value, "value")) do
-				eb:InsertLine(format("\t\t%s = %s,", t2.key, t2.value))
-			end
-			eb:InsertLine("\t},")
-		end
-		eb:InsertLine("}")
-	end
-end
-
--- TODO
 -- for auto marking globals in vscode extension
 function KethoDoc:DumpGlobals()
 	KethoDocData = {}
@@ -325,16 +198,57 @@ function KethoDoc:DumpGlobals()
 	end
 end
 
+---@param t table
+---@return boolean
+local function is_linear(t)
+	return t[1] ~= nil
+end
+
+---@param data any
+---@return string
+local function convert_to_text(data)
+	---@type string[]
+	local strings = {}
+
+	if type(data) == 'string' then
+		tinsert(strings, --[[---@type string]] data)
+	elseif type(data) == 'table' then
+		if is_linear(data) then
+			strings = data
+		else
+			for k, v in pairs(data) do
+				tinsert(strings, format('%s=%s', k, gsub(tostring(v), '\n', '\\n')))
+			end
+		end
+	end
+
+	---@type string[]
+	local filtered_strings = {}
+	for _, s in ipairs(strings) do
+		if not strfind(s, 'KETHO') and not strfind(s, 'Ketho') then
+			tinsert(filtered_strings, s)
+		end
+	end
+	sort(filtered_strings)
+
+	return table.concat(filtered_strings, '\n')
+end
+
 SLASH_KETHODOC1 = '/kd'
 SlashCmdList['KETHODOC'] = function()
+	---@param get fun():string
+	local function make_callback(get)
+		return (function() return convert_to_text(get()) end)
+	end
+
 	---@type Action[]
 	local actions = {
-		{'Dump Global Functions', getGlobalNamespaceFunctions},
-		{'Dump Global Frames', getGlobalFrames},
+		{'Dump Global Functions', make_callback(getGlobalNamespaceFunctions)},
+		{'Dump Global Frames', make_callback(getGlobalFrames)},
 		{'Dump Other Global Vars'},
+		{'Dump Global Constants', make_callback(getGlobalConstants)},
 		{'Dump Widget API'},
 		{'Dump CVars API'},
-		{'Dump Lua Enums'},
 		{'Test Widgets'},
 		{'Dump Everything'},
 	}

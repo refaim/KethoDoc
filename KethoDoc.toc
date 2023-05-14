@@ -8,7 +8,6 @@ KethoDoc.lua
 
 util.lua
 widget.xml
-lua_enum.lua
 widget.lua
 widget_doc.lua
 cvar.lua
