@@ -10,4 +10,3 @@ util.lua
 widget.xml
 widget.lua
 widget_doc.lua
-cvar.lua

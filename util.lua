@@ -50,10 +50,6 @@ function KethoDoc:CompareTable(left, right)
 	return intersect, onlyLeft, onlyRight
 end
 
-function KethoDoc.SortCaseInsensitive(a, b)
-	return a:lower() < b:lower()
-end
-
 function KethoDoc:TableEquals(actual, expected)
 	local isEquals = true
 	local size1, size2 = 0, 0

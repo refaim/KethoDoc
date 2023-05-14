@@ -2,6 +2,7 @@
 local _G = getfenv(0)
 
 --TODO rename all to snake_case
+--TODO refactor adoon: move UI to main lua file, move getters to some utility files
 
 KethoDoc = {}
 
@@ -115,79 +116,6 @@ function KethoDoc:DumpWidgetAPI()
 	eb:InsertLine("}\n\nreturn WidgetAPI")
 end
 
-function KethoDoc:DumpCVars()
-	local cvarTbl, commandTbl = {}, {}
-	local test_cvarTbl, test_commandTbl = {}, {}
-	local cvarFs = '\t\t["%s"] = {"%s", %d, %s, %s, "%s"},'
-	local commandFs = '\t\t["%s"] = {%d, "%s"},'
-
-	for _, v in pairs(C_Console.GetAllCommands()) do
-		if v.commandType == Enum.ConsoleCommandType.Cvar then
-			-- these just keep switching between false/nil
-			if not string.find(v.command, "^CACHE") and v.command ~= "KethoDoc" then
-				local _, defaultValue, server, character = GetCVarInfo(v.command)
-				-- every time they change the category they seem to lose the help text
-				local cvarCache = self.cvar_cache.var[v.command]
-				if cvarCache then
-					-- the category resets back to 5 seemingly randomly
-					if v.category == 5 then
-						v.category = cvarCache[2]
-					end
-				end
-				local helpString = ""
-				if v.help and getn(v.help) > 0 then
-					helpString = v.help
-				elseif cvarCache and cvarCache[5] then
-					helpString = cvarCache[5]
-				end
-				helpString = helpString:gsub('"', '\\"')
-				local tbl = self.cvar_test[v.command] and test_cvarTbl or cvarTbl
-				tinsert(tbl, cvarFs:format(v.command, defaultValue or "", v.category, tostring(server), tostring(character), helpString))
-			end
-		elseif v.commandType == Enum.ConsoleCommandType.Command then
-			local tbl = self.cvar_test[v.command] and test_commandTbl or commandTbl
-			local helpString = v.help and getn(v.help > 0) and v.help:gsub('"', '\\"') or ""
-			tinsert(tbl, commandFs:format(v.command, v.category, helpString))
-		end
-	end
-	for _, tbl in pairs({cvarTbl, commandTbl, test_cvarTbl, test_commandTbl}) do
-		sort(tbl, self.SortCaseInsensitive)
-	end
-	eb:Show()
-	eb:InsertLine("local CVars = {")
-	eb:InsertLine("\tvar = {")
-	eb:InsertLine("\t\t-- var = default, category, account, character, help")
-	for _, cvar in pairs(cvarTbl) do
-		eb:InsertLine(cvar)
-	end
-	eb:InsertLine("\t},")
-
-	eb:InsertLine("\tcommand = {")
-	eb:InsertLine("\t\t-- command = category, help")
-	for _, command in pairs(commandTbl) do
-		eb:InsertLine(command)
-	end
-	eb:InsertLine("\t},\n}\n")
-
-	if getn(test_cvarTbl) > 0 then
-		eb:InsertLine("local PTR = {")
-		eb:InsertLine("\tvar = {")
-		for _, cvar in pairs(test_cvarTbl) do
-			eb:InsertLine(cvar)
-		end
-		eb:InsertLine("\t},")
-		eb:InsertLine("\tcommand = {")
-		for _, command in pairs(test_commandTbl) do
-			eb:InsertLine(command)
-		end
-		eb:InsertLine("\t},\n}")
-	else
-		eb:InsertLine("local PTR = {}")
-	end
-
-	eb:InsertLine("\nreturn {CVars, PTR}")
-end
-
 -- for auto marking globals in vscode extension
 function KethoDoc:DumpGlobals()
 	KethoDocData = {}
@@ -248,7 +176,6 @@ SlashCmdList['KETHODOC'] = function()
 		{'Dump Other Global Vars'},
 		{'Dump Global Constants', make_callback(getGlobalConstants)},
 		{'Dump Widget API'},
-		{'Dump CVars API'},
 		{'Test Widgets'},
 		{'Dump Everything'},
 	}
