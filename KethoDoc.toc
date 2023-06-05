@@ -6,7 +6,5 @@
 ui.lua
 KethoDoc.lua
 
-util.lua
-widget.xml
-widget.lua
-widget_doc.lua
+set.lua
+data.lua

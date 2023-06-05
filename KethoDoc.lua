@@ -1,7 +1,7 @@
 ---@type table<string, any>
 local _G = getfenv(0)
 
---TODO refactor adoon: move UI to main lua file, move getters to some utility files
+--TODO refactor addon: move UI to main lua file, move getters to some utility files
 
 KethoDoc = {}
 
@@ -72,58 +72,126 @@ local function get_global_constants()
 	return name_to_value
 end
 
-function KethoDoc:DumpWidgetAPI()
-	if not self.WidgetClasses then
-		self:SetupWidgets()
-	end
-	eb:Show()
-	eb:InsertLine("local WidgetAPI = {")
-	for _, objectName in pairs(self.WidgetOrder) do
-		local object = self.WidgetClasses[objectName]
-		if object.meta_object then -- sanity check for Classic
-			eb:InsertLine("\t"..objectName.." = {")
-			local inheritsTable = {}
-			for _, v in pairs(object.inherits) do
-				tinsert(inheritsTable, format('"%s"', v)) -- stringify
-			end
-			eb:InsertLine(format("\t\tinherits = {%s},", table.concat(inheritsTable, ", ")))
+-----@param t table
+--local function getassocn(t)
+--	local n = 0
+--	for k, v in pairs(t) do
+--		n = n + 1
+--	end
+--	return n
+--end
 
-			if object.unique_handlers then
-				local handlers = self:SortTable(object.unique_handlers(), "key")
-				if next(handlers) then
-					eb:InsertLine("\t\thandlers = {")
-					for _, tbl in pairs(handlers) do
-						eb:InsertLine('\t\t\t"'..tbl.key..'",')
-					end
-					eb:InsertLine("\t\t},")
-				end
-			end
-			if object.unique_methods and not object.mixin then
-				eb:InsertLine("\t\tmethods = {")
-				local methods = self:SortTable(object.unique_methods(), "key")
-				for _, tbl in pairs(methods) do
-					eb:InsertLine('\t\t\t"'..tbl.key..'",')
-				end
-				eb:InsertLine("\t\t},")
-			end
-			if object.intrinsic then
-				eb:InsertLine(format('\t\tmixin = "%s",', object.mixin))
-				eb:InsertLine("\t\tintrinsic = true,")
-			end
-			eb:InsertLine("\t},")
-		end
+local function get_widget_api()
+	--TODO zalepa
+	local function print(v)
+		DEFAULT_CHAT_FRAME:AddMessage(tostring(v))
 	end
-	eb:InsertLine("}\n\nreturn WidgetAPI")
-end
 
--- for auto marking globals in vscode extension
-function KethoDoc:DumpGlobals()
-	KethoDocData = {}
-	for k in pairs(_G) do
-		if type(k) == "string" and not string.find(k, "Ketho") and not string.find(k, "table: ") then
-			KethoDocData[k] = true
-		end
+	---@type table<string, any>
+	local widget_class_to_instance = {
+		['Font'] = CreateFont(),
+		['FontString'] = CreateFrame('Frame'):CreateFontString(),
+		['Texture'] = CreateFrame('Frame'):CreateTexture(),
+	}
+	-- TODO use multiple simple const data arrays or one complex const data array for widget stuff?
+	for _, widget_class in ipairs(KETHO_DOC_FRAME_WIDGET_CLASSES) do
+		widget_class_to_instance[widget_class] = CreateFrame(widget_class, 'KethoWidget' .. widget_class)
 	end
+
+	---@shape WidgetInfo
+	---@field class string
+	---@field methods string[]
+	---@field script_types string[]
+
+	---@shape WidgetMetaTable
+	---@field __index fun(t, field):any
+
+	local used_script_types_set = Set:new()
+	local used_framexml_methods_set = Set:new()
+
+	---@type table<string, WidgetInfo>
+	local widget_class_to_info = {}
+	for widget_class, widget in pairs(widget_class_to_instance) do
+		local methods = {}
+		---@type WidgetMetaTable
+		local metatable = getmetatable(widget)
+		for _, method_name in ipairs(KETHO_DOC_FRAMEXML_METHODS) do
+			local field = metatable.__index(widget, method_name)
+			if type(field) == 'function' then
+				tinsert(methods, method_name)
+			elseif field ~= nil then
+				-- TODO temporary branch
+				print(format('%s: %s', method_name, type(field)))
+			end
+		end
+
+		--TODO zalepa
+		print(getn(methods))
+
+		---@type string[]
+		local script_types = {}
+		for _, script_type in ipairs(KETHO_DOC_SCRIPT_TYPES) do
+			if widget:HasScript(script_type) then
+				tinsert(script_types, script_type)
+			end
+		end
+
+		widget_class_to_info[widget_class] = {
+			['class'] = widget_class,
+			['methods'] = methods,
+			['script_types'] = script_types,
+		}
+	end
+
+	-- TODO check that each class has all methods from parent classes
+	-- TODO remove parent methods from widgets
+
+	-- TODO compose list of not used methods
+	-- TODO compose list of not used script types
+
+	return {}
+
+	--if not self.WidgetClasses then
+	--	self:SetupWidgets()
+	--end
+	--eb:Show()
+	--eb:InsertLine("local WidgetAPI = {")
+	--for _, objectName in pairs(self.WidgetOrder) do
+	--	local object = self.WidgetClasses[objectName]
+	--	if object.meta_object then -- sanity check for Classic
+	--		eb:InsertLine("\t"..objectName.." = {")
+	--		local inheritsTable = {}
+	--		for _, v in pairs(object.inherits) do
+	--			tinsert(inheritsTable, format('"%s"', v)) -- stringify
+	--		end
+	--		eb:InsertLine(format("\t\tinherits = {%s},", table.concat(inheritsTable, ", ")))
+	--
+	--		if object.unique_handlers then
+	--			local handlers = self:SortTable(object.unique_handlers(), "key")
+	--			if next(handlers) then
+	--				eb:InsertLine("\t\thandlers = {")
+	--				for _, tbl in pairs(handlers) do
+	--					eb:InsertLine('\t\t\t"'..tbl.key..'",')
+	--				end
+	--				eb:InsertLine("\t\t},")
+	--			end
+	--		end
+	--		if object.unique_methods and not object.mixin then
+	--			eb:InsertLine("\t\tmethods = {")
+	--			local methods = self:SortTable(object.unique_methods(), "key")
+	--			for _, tbl in pairs(methods) do
+	--				eb:InsertLine('\t\t\t"'..tbl.key..'",')
+	--			end
+	--			eb:InsertLine("\t\t},")
+	--		end
+	--		if object.intrinsic then
+	--			eb:InsertLine(format('\t\tmixin = "%s",', object.mixin))
+	--			eb:InsertLine("\t\tintrinsic = true,")
+	--		end
+	--		eb:InsertLine("\t},")
+	--	end
+	--end
+	--eb:InsertLine("}\n\nreturn WidgetAPI")
 end
 
 ---@param t table
@@ -175,8 +243,7 @@ SlashCmdList['KETHODOC'] = function()
 		{'Dump Global Frames', make_callback(get_global_frames)},
 		{'Dump Other Global Vars'}, --TODO probably smth like (_G - funcs - consts - lua_modules)
 		{'Dump Global Constants', make_callback(get_global_constants)},
-		{'Dump Widget API'},
-		{'Test Widgets'},
+		{'Dump Widget API', make_callback(get_widget_api)},
 		{'Dump Everything'},
 	}
 	KethoWindow:Create(actions)
